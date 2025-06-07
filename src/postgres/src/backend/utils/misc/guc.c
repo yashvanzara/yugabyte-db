@@ -1262,7 +1262,7 @@ static struct config_bool ConfigureNamesBool[] =
 			GUC_EXPLAIN
 		},
 		&enable_partitionwise_aggregate,
-		false,
+		true,					/* YB: change default from false to true */
 		NULL, NULL, NULL
 	},
 	{
@@ -3409,7 +3409,7 @@ static struct config_bool ConfigureNamesBool[] =
 	{
 		{"yb_force_early_ddl_serialization", PGC_USERSET, DEVELOPER_OPTIONS,
 			gettext_noop("If object locking is off (i.e., "
-						 "TEST_enable_object_locking_for_table_locks=false), concurrent DDLs might face a "
+						 "enable_object_locking_for_table_locks=false), concurrent DDLs might face a "
 						 "conflict error on the catalog version increment at the end after doing all the work. "
 						 "Setting this flag enables a fail-fast strategy by locking the catalog version at the "
 						 "start of DDLs, causing conflict errors to occur before useful work is done. This "
@@ -3422,6 +3422,33 @@ static struct config_bool ConfigureNamesBool[] =
 		},
 		&yb_force_early_ddl_serialization,
 		true,
+		NULL, NULL, NULL
+	},
+
+	{
+		{"yb_speculatively_execute_pl_statements", PGC_SUSET, CUSTOM_OPTIONS,
+			gettext_noop("If enabled, procedural language statements may be speculatively executed "
+						 "when it is safe to do so without waiting for the successful completion "
+						 "of previous statements. This allows any writes produced by triggers to "
+						 "be batched alongside their parent data-modifying writes such that the "
+						 "number of storages flushes may be minimized."),
+			NULL,
+			GUC_NOT_IN_SAMPLE
+		},
+		&yb_speculatively_execute_pl_statements,
+		false,
+		NULL, NULL, NULL
+	},
+
+	{
+		{"yb_whitelist_extra_statements_for_pl_speculative_execution", PGC_SUSET, CUSTOM_OPTIONS,
+			gettext_noop("If enabled, additional procedural language constructs are whitelisted "
+						 "for use in speculative execution."),
+			NULL,
+			GUC_NOT_IN_SAMPLE
+		},
+		&yb_whitelist_extra_stmts_for_pl_speculative_execution,
+		false,
 		NULL, NULL, NULL
 	},
 
@@ -5275,18 +5302,6 @@ static struct config_int ConfigureNamesInt[] =
 		},
 		&yb_query_diagnostics_circular_buffer_size,
 		64, 1, INT_MAX,
-		NULL, NULL, NULL
-	},
-
-	{
-		{"yb_major_version_upgrade_compatibility", PGC_SIGHUP, CUSTOM_OPTIONS,
-			gettext_noop("The compatibility level to use during a YSQL Major version upgrade. "
-						 "Allowed values are 0 and 11."),
-			NULL,
-			GUC_NOT_IN_SAMPLE
-		},
-		&yb_major_version_upgrade_compatibility,
-		0, 0, INT_MAX,
 		NULL, NULL, NULL
 	},
 

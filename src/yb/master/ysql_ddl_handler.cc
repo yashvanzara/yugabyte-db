@@ -53,7 +53,7 @@ DEFINE_test_flag(bool, disable_release_object_locks_on_ddl_verification, false,
     "When set, skip release object lock rpcs to tservers triggered at the end of DDL verification, "
     "that release object locks acquired by the DDL.");
 
-DECLARE_bool(TEST_enable_object_locking_for_table_locks);
+DECLARE_bool(enable_object_locking_for_table_locks);
 
 using namespace std::placeholders;
 using std::shared_ptr;
@@ -399,10 +399,14 @@ Status CatalogManager::YsqlDdlTxnCompleteCallbackInternal(
       RETURN_NOT_OK(HandleAbortedYsqlDdlTxn(txn_data));
     }
   } else {
-    // If success is nullopt, it represents a PG DDL statement that only increments the schema
-    // version of this table without any table schema change. There is nothing to do but to
-    // cleanup.
-    RETURN_NOT_OK(ClearYsqlDdlTxnState(txn_data));
+    // If success is nullopt, it represents a transaction where all DDL statements are either that:
+    // 1. only increments the schema version of the table without any table schema change.
+    // 2. were ambiguous to determine and their commit or abort ends up with the same schema.
+    //    example: BEGIN; CREATE TABLE; DROP TABLE; COMMIT or ROLLBACK;
+    // We can choose either COMMIT or ABORT. It doesn't matter. So we choose COMMIT here.
+    VLOG(3) << "Ysql DDL transaction " << txn_id << " for table " << table->ToString()
+            << " is ambiguous, treating it as a success";
+    RETURN_NOT_OK(HandleSuccessfulYsqlDdlTxn(txn_data));
   }
   return Status::OK();
 }
@@ -642,7 +646,7 @@ void CatalogManager::RemoveDdlTransactionStateUnlocked(
       // 1. Either the alter waits inline successfully before issuing the commit,
       // 2. or when the above times out, this branch is involed by the multi step
       //    TableSchemaVerificationTask's callback post the schema changes have been applied.
-      if (FLAGS_TEST_enable_object_locking_for_table_locks &&
+      if (FLAGS_enable_object_locking_for_table_locks &&
           !FLAGS_TEST_disable_release_object_locks_on_ddl_verification) {
         WARN_NOT_OK(
             background_tasks_thread_pool_->SubmitFunc([this, txn_id]() {

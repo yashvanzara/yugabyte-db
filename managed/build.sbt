@@ -389,7 +389,7 @@ versionGenerate := {
     (Compile / resourceDirectory).value / "version_metadata.json").!
   ybLog("version_metadata.json Generated")
   Process("rm -f " + (Compile / resourceDirectory).value / "gen_version_info.log").!
-  var downloadYbcCmd = "./download_ybc.sh -c " + (Compile / resourceDirectory).value / "reference.conf" + " -i"
+  var downloadYbcCmd = "./download_ybc.sh -c " + (Compile / resourceDirectory).value / "ybc_version.conf" + " -i"
   if (moveYbcPackage) {
     downloadYbcCmd = downloadYbcCmd + " -s"
   }
@@ -932,7 +932,7 @@ runPlatform := {
 }
 
 libraryDependencies += "org.yb" % "yb-client" % "0.8.104-SNAPSHOT"
-libraryDependencies += "org.yb" % "ybc-client" % "2.2.0.2-b4"
+libraryDependencies += "org.yb" % "ybc-client" % "2.2.0.2-b5"
 libraryDependencies += "org.yb" % "yb-perf-advisor" % "1.0.0-b35"
 
 libraryDependencies ++= Seq(
